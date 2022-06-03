@@ -48,5 +48,16 @@ PS> Invoke-CMLootDownload -InventoryFile .\sccmfiles.txt -Extension ps1
 Files will by default download to CMLootOut in the folder from which you execute the script, can be changed with -OutFolder parameter.
 Filenames are in the format of filehash_filename so similar filenames won't be overwritten.
 
+### DEMO
+
+Inventory:
+![](demo/inventory.gif)
+
+GridSelect:
+![](demo/gridselect.gif)
+
+Extension:
+![](demo/extension.gif)
+
 ### Author
 Tomas Rzepka / WithSecure
