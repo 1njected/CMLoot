@@ -46,9 +46,13 @@ Enumerates files available on SCCM share and saves it to a file, excludes extens
         if ($share -match 'SCCMContentLib') {
             $inifiles = Get-ChildItem -Path ('\\' + $SCCMHost + '\' + $share + '\DataLib\') -Recurse -File -Exclude $ExludeList -Include "*.INI" 
             foreach($item in $inifiles) { 
-                if ($item -notmatch ($ExcludeList -join '|')) {
+            if ($ExcludeList) {
+                if (($item -notmatch ($ExcludeList -join '|'))) {
                     $item.FullName.Substring(0, $item.FullName.Length-4) | Add-Content -Path $OutFile
                 }
+            } else {
+                $item.FullName.Substring(0, $item.FullName.Length-4) | Add-Content -Path $OutFile
+            }
      }}}}
 }
 
