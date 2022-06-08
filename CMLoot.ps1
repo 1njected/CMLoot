@@ -1,4 +1,4 @@
-﻿function Invoke-CMLootInventory {
+function Invoke-CMLootInventory {
 <#
 
 .SYNOPSIS
@@ -41,19 +41,34 @@ Enumerates files available on SCCM share and saves it to a file, excludes extens
     # Grab all shares on host and fetch all .ini-files SCCMContentLib\DataLib share
     (net view $SCCMHost /all) | % {
         if($_.IndexOf(' Disk ') -gt 0){
-        $share = $_.Split('      ')[0]
+            $share = $_.Split('      ')[0]
 
-        if ($share -match 'SCCMContentLib') {
-            $inifiles = Get-ChildItem -Path ('\\' + $SCCMHost + '\' + $share + '\DataLib\') -Recurse -File -Exclude $ExludeList -Include "*.INI" 
-            foreach($item in $inifiles) { 
-            if ($ExcludeList) {
-                if (($item -notmatch ($ExcludeList -join '|'))) {
-                    $item.FullName.Substring(0, $item.FullName.Length-4) | Add-Content -Path $OutFile
+            if ($share -match 'SCCMContentLib') {
+
+                # Folder fetching
+                $folders = Get-ChildItem -Path ('\\' + $SCCMHost + '\' + $share + '\DataLib\') -Directory -ErrorAction SilentlyContinue
+                $files = For($i = 0; $i -lt $folders.count; $i++) {
+                    # Update progress bar for current folder
+                    Write-Progress -Activity "Scanning files." -CurrentOperation ('Collecting INI Files in: '+ $folders[$i].FullName) -PercentComplete (($i+1) / $folders.count * 100) -Status ("Folder {0} of {1}" -f ($i + 1), $folders.count)
+                
+                    # INI file fetching
+                    Get-ChildItem -Path $folders[$i].FullName -File -Recurse -Exclude $ExludeList -Include *.INI |
+                        ForEach-Object -Process {
+                        if ($_.PSIsContainer) {
+                            continue
+                        }
+                        if ($ExcludeList) {
+                            if (($_ -notmatch ($ExcludeList -join '|'))) {
+                                $_.FullName.Substring(0, $_.FullName.Length-4) | Add-Content -Path $OutFile
+                            }
+                        } else {
+                            $_.FullName.Substring(0, $_.FullName.Length-4) | Add-Content -Path $OutFile
+                        }
+                    }
                 }
-            } else {
-                $item.FullName.Substring(0, $item.FullName.Length-4) | Add-Content -Path $OutFile
             }
-     }}}}
+        }
+    }
 }
 
 
