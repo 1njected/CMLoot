@@ -64,13 +64,13 @@ Invoke-CMLootExtract -Path .\CMLootOut\msi
 
 ### DEMO
 
-Inventory:
+Run inventory, scanning available files:
 ![](demo/inventory.gif)
 
-GridSelect:
+Select files using GridSelect:
 ![](demo/gridselect.gif)
 
-Extension:
+Download all extensions:
 ![](demo/extension.gif)
 
 Hunt "inaccessible" files and MSI extract:

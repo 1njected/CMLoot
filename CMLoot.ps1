@@ -245,7 +245,7 @@ function Invoke-CMLootHunt {
 
     # Create output base dir
     New-Item $OutFolder -ItemType Directory -ErrorAction Ignore| Out-Null
-    
+
     # Build array of lines in file
     foreach($line in Get-Content $NoAccessFile) { $ACLSearch += $line }
 
@@ -276,7 +276,6 @@ function Invoke-CMLootHunt {
                             if ($ACLSearch.contains($content[0])) 
                                 {
                                     $sourcefile =  $_.DirectoryName + "\" + $_.FullName.Split("\")[-1].Split(".")[0]
-
                                     Write-Output ("[*] File {0} match {1}. Copying to outfolder." -f $sourcefile, $content[0]) ""
                                     Copy-Item $sourcefile -Destination $OutFolder
                                 }
