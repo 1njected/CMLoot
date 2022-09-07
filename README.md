@@ -7,6 +7,10 @@ https://techcommunity.microsoft.com/t5/configuration-manager-archive/understandi
 Essentially the DataLib folder contains .INI files, the .INI file are named the original filename + .INI.
 The .INI file contains a hash of the file, and the file itself is stored in the FileLib in format of <folder name: 4 first chars of the hash>\fullhash.
 
+### CM Access Accounts
+It is possible to apply Access control to packages in CM. This however only protects the folder for the file descriptor (DataLib), not the actual file itself. CMLoot will during inventory record any package that it can't access (Access denied) to the file <inventoryfile>_noaccess.txt. Invoke-CMLootHunt can then use this file to enumerate the actual files that the access control is trying to protect.
+
+
 ### OPSEC
 Windows Defender for Endpoint (EDR) or other security mechanisms might trigger because the script parses a lot of files over SMB.
 
@@ -28,25 +32,35 @@ PS> Invoke-CMLootInventory -SCCMHost sccm01.domain.local -Outfile sccmfiles.txt
 
 Then use the inventory file created above to download files of interest:
 
-Select files using GridView:
+Select files using GridView (Milage may vary with large inventory files):
 
 ```
 PS> Invoke-CMLootDownload -InventoryFile .\sccmfiles.txt -GridSelect
 ```
 
-Or download a single file, by coping a line in the inventory text:
+Download a single file, by coping a line in the inventory text:
 
 ```
 PS> Invoke-CMLootDownload -SingleFile \\sccm\SCCMContentLib$\DataLib\SC100001.1\x86\MigApp.xml
 ```
 
-Or download all files with a certain file extension:
+Download all files with a certain file extension:
 ```
 PS> Invoke-CMLootDownload -InventoryFile .\sccmfiles.txt -Extension ps1
 ```
 
-Files will by default download to CMLootOut in the folder from which you execute the script, can be changed with -OutFolder parameter.
-Filenames are in the format of filehash_filename so similar filenames won't be overwritten.
+Files will by default download to CMLootOut in the folder from which you execute the script, can be changed with -OutFolder parameter. Files are saved in the format of (folder: filext)\\(first 4 chars of hash>_original filename).
+
+Hunt for files that CMLootInventory found inaccessible:
+```
+Invoke-CMLootHunt -SCCMHost sccm -NoAccessFile sccmfiles_noaccess.txt
+```
+
+Bulk extract MSI files:
+```
+Invoke-CMLootExtract -Path .\CMLootOut\msi
+```
+
 
 ### DEMO
 
@@ -58,6 +72,10 @@ GridSelect:
 
 Extension:
 ![](demo/extension.gif)
+
+Hunt "inaccessible" files and MSI extract:
+![](demo/hunt.gif)
+
 
 ### Author
 Tomas Rzepka / WithSecure
