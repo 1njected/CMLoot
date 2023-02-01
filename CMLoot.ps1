@@ -58,56 +58,45 @@ Enumerates files available on SCCM share and saves it to a file, excludes extens
     }
 
     # Grab all shares on host and fetch all .ini-files SCCMContentLib\DataLib share
-    (net view $SCCMHost /all) | % {
-        if($_.IndexOf(' Disk ') -gt 0){
-            $share = $_.Split('      ')[0]
+    (net view $SCCMHost /all) | %{ $_.Split(' ')[0] } | ?{ $_ -match 'SCCMContentLib' } | %{
+        $share = $_
 
-            if ($share -match 'SCCMContentLib') {
+        # Folder fetching
+        $folders = Get-ChildItem -Path ('\\' + $SCCMHost + '\' + $share + '\DataLib\') -Directory -ErrorAction SilentlyContinue
+        For($i = 0; $i -lt $folders.count; $i++) {
 
-                # Folder fetching
-                $folders = Get-ChildItem -Path ('\\' + $SCCMHost + '\' + $share + '\DataLib\') -Directory -ErrorAction SilentlyContinue
-                For($i = 0; $i -lt $folders.count; $i++) {
-                    
-                    # Update progress bar for current folder
-                    Write-Progress -Activity "Scanning files." -CurrentOperation ('Collecting INI Files in: '+ $folders[$i].FullName) -PercentComplete (($i+1) / $folders.count * 100) -Status ("Folder {0} of {1}" -f ($i + 1), $folders.count)
-                
-                    # INI file fetching
-                    Get-ChildItem -Path $folders[$i].FullName -File -Recurse -Exclude $ExludeList -Include *.INI -ErrorAction SilentlyContinue -ErrorVariable +fileErr |
-                        ForEach-Object -Process {
-                            if ($_.PSIsContainer) {
-                                    continue
-                                }
+            # Update progress bar for current folder
+            Write-Progress -Activity "Scanning files." -CurrentOperation ('Collecting INI Files in: '+ $folders[$i].FullName) -PercentComplete (($i+1) / $folders.count * 100) -Status ("Folder {0} of {1}" -f ($i + 1), $folders.count)
 
-                            if ($ExcludeList) {
-                                if (($_ -notmatch ($ExcludeList -join '|'))) {
-                                    $_.FullName.Substring(0, $_.FullName.Length-4) | Add-Content -Path $OutFile
-                                }
-                            } else {
-                                $_.FullName.Substring(0, $_.FullName.Length-4) | Add-Content -Path $OutFile
-                            }
-                        }
+            # INI file fetching
+            Get-ChildItem -Path $folders[$i].FullName -File -Recurse -Exclude $ExludeList -Include *.INI -ErrorAction SilentlyContinue -ErrorVariable +fileErr | ForEach-Object -Process {
+                if ($_.PSIsContainer) {
+                    continue
                 }
 
-            # Check errors if access is denied = interesting file
-            foreach($ex in $fileErr)
-                {
-                    if ($ex.Exception -is [System.UnauthorizedAccessException]) 
-                        {
-                            Write-Output ("[*] Access to {0} is denied, adding to {1}" -f $ex.TargetObject, $OutfileNoAccess) ""
-                            $ex.TargetObject.Split("\")[-1] | Add-Content -Path $OutfileNoAccess
-                            
-                        }
-                }
-            # Write help text
-            if (Test-Path -Path $OutFile -PathType Leaf)
-                {
-                    Write-Output ("[*] Inventory created. Use Invoke-CMLootDownload -InventoryFile {0} to download files. See Get-Help Invoke-CMLootDownload for options." -f $Outfile) "" 
-                }
-            if (Test-Path -Path $OutfileNoAccess -PathType Leaf)
-                {
-                    Write-Output ("[*] Inaccessible DataLib content detected. Use Invoke-CMLootHunt -SCCMHost {0} -NoAccessFile {1} to search for correlating files." -f $SCCMHost, $OutfileNoAccess) ""
+                if ($ExcludeList) {
+                    if (($_ -notmatch ($ExcludeList -join '|'))) {
+                        $_.FullName.Substring(0, $_.FullName.Length-4) | Add-Content -Path $OutFile
+                    }
+                } else {
+                    $_.FullName.Substring(0, $_.FullName.Length-4) | Add-Content -Path $OutFile
                 }
             }
+        }
+
+        # Check errors if access is denied = interesting file
+        foreach($ex in $fileErr) {
+            if ($ex.Exception -is [System.UnauthorizedAccessException]) {
+                Write-Output ("[*] Access to {0} is denied, adding to {1}" -f $ex.TargetObject, $OutfileNoAccess) ""
+                $ex.TargetObject.Split("\")[-1] | Add-Content -Path $OutfileNoAccess
+            }
+        }
+        # Write help text
+        if (Test-Path -Path $OutFile -PathType Leaf) {
+            Write-Output ("[*] Inventory created. Use Invoke-CMLootDownload -InventoryFile {0} to download files. See Get-Help Invoke-CMLootDownload for options." -f $Outfile) "" 
+        }
+        if (Test-Path -Path $OutfileNoAccess -PathType Leaf) {
+            Write-Output ("[*] Inaccessible DataLib content detected. Use Invoke-CMLootHunt -SCCMHost {0} -NoAccessFile {1} to search for correlating files." -f $SCCMHost, $OutfileNoAccess) ""
         }
     }
 }
